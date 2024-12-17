@@ -3,70 +3,70 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-def draw_cat_plot():
-    # Import data
-    df = pd.read_csv('medical_examination.csv')
+def draw_line_plot():
+    # Read and clean data
+    df = pd.read_csv('fcc-forum-pageviews.csv', index_col='date', parse_dates=True)
+    df = df[(df['value'] >= df['value'].quantile(0.025)) & (df['value'] <= df['value'].quantile(0.975))]
 
-    # Add 'overweight' column
-    df['overweight'] = ((df['weight'] / (df['height'] / 100) ** 2) > 25).astype(int)
+    # Draw line plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(df.index, df['value'], color='red', linewidth=1)
+    ax.set_title('Daily freeCodeCamp Forum Page Views 5/2016-12/2019')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Page Views')
 
-    # Normalize data by making 0 always good and 1 always bad
-    df['cholesterol'] = (df['cholesterol'] > 1).astype(int)
-    df['gluc'] = (df['gluc'] > 1).astype(int)
-
-    # Create DataFrame for cat plot using pd.melt
-    df_cat = pd.melt(
-        df,
-        id_vars=['cardio'],
-        value_vars=['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight']
-    )
-
-    # Group and reformat the data to split it by 'cardio'
-    df_cat = df_cat.groupby(['cardio', 'variable', 'value']).size().reset_index(name='total')
-
-    # Draw the catplot
-    fig = sns.catplot(
-        x='variable', y='total', hue='value', col='cardio', data=df_cat,
-        kind='bar', height=5, aspect=1
-    ).fig
-
-    # Save the figure
-    fig.savefig('catplot.png')
+    # Save image
+    fig.savefig('line_plot.png')
     return fig
 
-def draw_heat_map():
-    # Import data
-    df = pd.read_csv('medical_examination.csv')
+def draw_bar_plot():
+    # Read and clean data
+    df = pd.read_csv('fcc-forum-pageviews.csv', index_col='date', parse_dates=True)
+    df = df[(df['value'] >= df['value'].quantile(0.025)) & (df['value'] <= df['value'].quantile(0.975))]
 
-    # Add 'overweight' column
-    df['overweight'] = ((df['weight'] / (df['height'] / 100) ** 2) > 25).astype(int)
+    # Prepare data for bar plot
+    df['year'] = df.index.year
+    df['month'] = df.index.month
+    df_bar = df.groupby(['year', 'month'])['value'].mean().unstack()
 
-    # Normalize data by making 0 always good and 1 always bad
-    df['cholesterol'] = (df['cholesterol'] > 1).astype(int)
-    df['gluc'] = (df['gluc'] > 1).astype(int)
+    # Draw bar plot
+    fig = df_bar.plot(kind='bar', figsize=(12, 6), legend=True).figure
+    plt.xlabel('Years')
+    plt.ylabel('Average Page Views')
+    plt.legend(title='Months', labels=[
+        'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+    ])
+    plt.title('')
 
-    # Clean the data
-    df_heat = df[
-        (df['ap_lo'] <= df['ap_hi']) &
-        (df['height'] >= df['height'].quantile(0.025)) &
-        (df['height'] <= df['height'].quantile(0.975)) &
-        (df['weight'] >= df['weight'].quantile(0.025)) &
-        (df['weight'] <= df['weight'].quantile(0.975))
-    ]
+    # Save image
+    fig.savefig('bar_plot.png')
+    return fig
 
-    # Calculate the correlation matrix
-    corr = df_heat.corr()
+def draw_box_plot():
+    # Read and clean data
+    df = pd.read_csv('fcc-forum-pageviews.csv', index_col='date', parse_dates=True)
+    df = df[(df['value'] >= df['value'].quantile(0.025)) & (df['value'] <= df['value'].quantile(0.975))]
 
-    # Generate a mask for the upper triangle
-    mask = np.triu(np.ones_like(corr, dtype=bool))
+    # Prepare data for box plots
+    df_box = df.copy()
+    df_box.reset_index(inplace=True)
+    df_box['year'] = df_box['date'].dt.year
+    df_box['month'] = df_box['date'].dt.strftime('%b')
+    df_box['month_num'] = df_box['date'].dt.month
+    df_box = df_box.sort_values('month_num')
 
-    # Set up the matplotlib figure
-    fig, ax = plt.subplots(figsize=(12, 12))
+    # Draw box plots
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
 
-    # Draw the heatmap
-    sns.heatmap(
-        corr, mask=mask, annot=True, fmt='.1f', center=0, square=True, cbar_kws={'shrink': 0.5}, ax=ax
-    )
+    sns.boxplot(x='year', y='value', data=df_box, ax=axes[0])
+    axes[0].set_title('Year-wise Box Plot (Trend)')
+    axes[0].set_xlabel('Year')
+    axes[0].set_ylabel('Page Views')
+
+    sns.boxplot(x='month', y='value', data=df_box, ax=axes[1])
+    axes[1].set_title('Month-wise Box Plot (Seasonality)')
+    axes[1].set_xlabel('Month')
+    axes[1].set_ylabel('Page Views')
 
     # Save the figure
     fig.savefig('heatmap.png')
